@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import '../styles/Record.css';
 import '../styles/Login.css';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEraser, faPencilAlt  } from '@fortawesome/free-solid-svg-icons';
 
 const DentalHealthRecord = ({ label, identifier }) => {
   const type = "patient";
@@ -315,14 +313,12 @@ const DentalHealthRecord = ({ label, identifier }) => {
             />
               <button type="button" onClick={() => setPenShape('circle')}>Circular</button>
               <button type="button" onClick={() => setPenShape('square')}>Square</button>
-              <button type="button" style={{ color: 'black'}} onClick={() => handleColorChange('black')}><FontAwesomeIcon icon={faPencilAlt} />Conditions</button>
-              <button type="button" style={{ color: "#ff0000"}} onClick={() => handleColorChange('#ff0000')}><FontAwesomeIcon icon={faPencilAlt} />Treatment Plan</button>
-              <button type="button" style={{ color: '#0000ff'}} onClick={() => handleColorChange('#0000ff')}><FontAwesomeIcon icon={faPencilAlt} />Completed</button>
-              <button type="button" style={{ marginRight: "20px" }} onClick={handleEraser}><FontAwesomeIcon icon={faEraser} /> </button>
+              <button type="button" style={{ color: 'black'}} onClick={() => handleColorChange('black')}>Conditions</button>
+              <button type="button" style={{ color: "#ff0000"}} onClick={() => handleColorChange('#ff0000')}>Treatment Plan</button>
+              <button type="button" style={{ color: '#0000ff'}} onClick={() => handleColorChange('#0000ff')}>Completed</button>
+              <button type="button" style={{ marginRight: "20px" }} onClick={handleEraser}></button>
               <button type="button" onClick={handleClearAll}>Clear All</button>
               <button type="button" onClick={saveDrawing}>Save Drawing</button>
-
-     
           </div>
 
           <div className="input-field" >
