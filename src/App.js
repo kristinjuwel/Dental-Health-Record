@@ -1,23 +1,27 @@
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import DentalHealthRecord from "./pages/DentalHealthRecord";
+import Login from "./pages/Login";
+import Registration from "./pages/Registration";
+import Verification from "./pages/Verification";
+import Profile from "./pages/Profile";
+import Referral from "./pages/Referral";
+import Consent from "./pages/Consent";
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <BrowserRouter>
+        <Routes>
+          <Route index element={<Login/>}></Route>
+          <Route path="/dentalhealthrecord" element={<DentalHealthRecord/>}></Route>
+          <Route path="/registration" element={<Registration/>}></Route>
+          <Route path="/login" element={<Login/>}></Route>
+          <Route path="/verification" element={<Verification/>}></Route>
+          <Route path="/profile/:userType/:userId" element={<Profile/>}></Route>
+          <Route path="/referral" element={<Referral/>}></Route>
+          <Route path="/consent" element={<Consent/>}></Route>
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 }
