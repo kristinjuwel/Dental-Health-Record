@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/Login.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
   const navigate = useNavigate(); // Initialize useNavigate hook
@@ -21,10 +21,9 @@ const Login = () => {
 
         if (response.ok) {
             // Login successful
-            const responseData = await response.text(); // Get response as text
-            const [userType, userId] = responseData.split(',');
+            const responseData = await response.text();
             console.log('Login successful');
-            navigate(`/profile/${userType}/${userId}`);            
+            navigate(`/profile/${responseData}`);            
         } else {
             // Login failed
             const errorMessage = await response.text();
@@ -68,6 +67,9 @@ const Login = () => {
             </div>
             {error && <div className="error-message">{error}</div>}
             <input type="submit" value="Login" />
+            <div className="notregistered">
+                <Link to="/registration">Not registered yet?</Link>
+            </div>
           </form>
         </div>
       </div>

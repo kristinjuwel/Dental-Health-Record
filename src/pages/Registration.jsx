@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import '../styles/Login.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Registration = () => {
-    const navigate = useNavigate(); // Initialize useNavigate hook
-
-    const [userType, setUserType] = useState('');
+    const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
         username: '',
@@ -27,16 +25,24 @@ const Registration = () => {
         unitAssign: '',
     });
 
-    const handleUserTypeChange = (event) => {
-        setUserType(event.target.value);
-    };
 
     const handleChange = (event) => {
         const { name, value } = event.target;
-        setFormData({
-            ...formData,
-            [name]: value,
-        });
+        if (name === 'birthday') {
+            const today = new Date();
+            const birthDate = new Date(value);
+            const age = today.getFullYear() - birthDate.getFullYear();
+            setFormData({
+                ...formData,
+                [name]: value,
+                age: age.toString(),
+            });
+        } else {
+            setFormData({
+                ...formData,
+                [name]: value,
+            });
+        }
     };
 
     const handleDentistSignUp = async () => {
@@ -77,66 +83,43 @@ const Registration = () => {
         }
     };
 
-    const handlePatientSignUp = async () => {
-        const patientData = {
-            user: {
-                username: formData.username,
-                firstName: formData.firstName,
-                middleName: formData.middleName,
-                lastName: formData.lastName,
-                age: parseInt(formData.age, 10),
-                sex: formData.sex,
-                birthday: formData.birthday,
-                address: formData.address,
-                contactNumber: formData.contactNumber,
-                email: formData.email,
-                password: formData.password,
-                userType: 'Patient',
-            },
-            patient: {
-                patientType: formData.patientType,
-                rank: formData.rank,
-                unitAssign: formData.unitAssign,
-            },
-        };
-
-        try {
-            const response = await fetch('http://localhost:8080/patients', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(patientData),
-            });
-            const data = await response.json();
-            console.log('Patient sign-up successful:', data);
-        } catch (error) {
-            console.error('Error during patient sign-up:', error);
-        }
-    };
-
     const handleSubmit = async (event) => {
         event.preventDefault();
         let signUpSuccess = false;
     
-        if (userType === 'dentist') {
-            await handleDentistSignUp();
-            signUpSuccess = true; 
-        } else if (userType === 'patient') {
-            await handlePatientSignUp();
-            signUpSuccess = true;
-        } else {
-            alert('Please select a user type');
+        // Form validation
+        if (
+            !formData.username ||
+            !formData.firstName ||
+            !formData.lastName ||
+            !formData.birthday ||
+            !formData.sex ||
+            !formData.address ||
+            !formData.contactNumber ||
+            !formData.email ||
+            !formData.password ||
+            !formData.confirmpass ||
+            !formData.licenseNo
+        ) {
+            alert('Please fill in all required fields.');
             return;
         }
-        
+    
+        if (formData.password !== formData.confirmpass) {
+            alert('Passwords do not match.');
+            return;
+        }
+    
+        await handleDentistSignUp();
+        signUpSuccess = true;
+    
         if (signUpSuccess) {
             sessionStorage.setItem('userEmail', formData.email);
-            
             navigate('/verification');
         }
     };
     
+
 
     return (
         <div className="container">
@@ -165,8 +148,8 @@ const Registration = () => {
                             <input type="date" name="birthday" id="birthdate" onChange={handleChange} />
                         </div>
                         <div className="input-field" style={{ paddingRight: "20px" }}>
-                            <label htmlFor="age">Age</label>
-                            <input type="text" name="age" id="age" onChange={handleChange} />
+                                <label htmlFor="age">Age</label>
+                                <input type="text" name="age" id="age" value={formData.age} readOnly />
                         </div>
                         <div className="input-field" >
                             <label htmlFor="sex">Sex*</label>
@@ -217,67 +200,30 @@ const Registration = () => {
                         </div>
                         <div className="middlelast" name='middlelast'>
                             <div className="input-field">
-                                <label htmlFor="usertype">User Type*</label>
-                                <select
-                                    name="usertype"
-                                    id="usertype"
-                                    style={{ color: "#fff", borderColor: "#fff", backgroundColor: "transparent" }}
-                                    value={userType}
-                                    onChange={handleUserTypeChange}
-                                >
-                                    <option value="" disabled hidden>Select User Type</option>
-                                    <option value="dentist" style={{ color: "black" }}>Dentist</option>
-                                    <option value="patient" style={{ color: "black" }}>Patient</option>
-                                </select>
+                                <label htmlFor="license">License Number*</label>
+                                <input type="text" name="licenseNo" id="license" onChange={handleChange} />
                             </div>
-                            {userType === 'dentist' && (
-                                <div className="input-field" style={{ paddingLeft: "20px" }}>
-                                    <label htmlFor="license">License Number*</label>
-                                    <input type="text" name="licenseNo" id="license" onChange={handleChange} />
-                                </div>
-                            )}
-                            {userType === 'patient' && (
-                                <div className="input-field" style={{ paddingLeft: "20px" }}>
-                                    <label htmlFor="patientType">Patient Type*</label>
-                                    <select name="patientType" id="patientType" onChange={handleChange} style={{ color: "#fff", borderColor: "#fff", backgroundColor: "transparent" }}>
-                                        <option value="" disabled>Select Patient Type</option>
-                                        <option value="uniformed" style={{ color: "black" }}>Uniformed Personnel</option>
-                                        <option value="nonUniformed" style={{ color: "black" }}>Non-Uniformed Personnel</option>
-                                        <option value="civilian" style={{ color: "black" }}>Civilian</option>
-                                        <option value="retiree" style={{ color: "black" }}>Retiree</option>
-                                    </select>
-                                </div>
-                            )}
                         </div>
-                        {userType === 'dentist' && (
-                            <div className="middlelast" name='middlelast'>
-                                <div className="input-field" style={{ paddingRight: "20px" }}>
-                                    <label htmlFor="clinic_name">Clinic Name</label>
-                                    <input type="text" name="clinic" id="clinic_name" onChange={handleChange} />
-                                </div>
-                                <div className="input-field">
-                                    <label htmlFor="clinic_loc">Clinic Location</label>
-                                    <input type="text" name="clinicLoc" id="clinic_loc" onChange={handleChange} />
-                                </div>
+                        <div className="middlelast" name='middlelast'>
+
+                            <div className="input-field" style={{ paddingRight: "20px" }}>
+                                <label htmlFor="clinic_name">Clinic Name</label>
+                                <input type="text" name="clinic" id="clinic_name" onChange={handleChange} />
                             </div>
-                        )}
-                        {userType === 'patient' && (
-                            <div className="middlelast" name='middlelast'>
-                                <div className="input-field" style={{ paddingRight: "20px" }}>
-                                    <label htmlFor="rank">Rank*</label>
-                                    <input type="text" name="rank" id="rank" onChange={handleChange} />
-                                </div>
-                                <div className="input-field">
-                                    <label htmlFor="unit">Unit Assignment*</label>
-                                    <input type="text" name="unitAssign" id="unit" onChange={handleChange} />
-                                </div>
+                            <div className="input-field">
+                                <label htmlFor="clinic_loc">Clinic Location</label>
+                                <input type="text" name="clinicLoc" id="clinic_loc" onChange={handleChange} />
                             </div>
-                        )}
-
-
-
+                        </div>
                         <div style={{ textAlign: "center" }}>
                             <input type="submit" value="Register" style={{ backgroundColor: "#fff", color: "#2aafce", marginTop: "10px", width: "10vw", alignItems: "center" }} />
+                        </div>
+                        <div className="otherActions">
+                          <div className="notregisteredreg">
+                            <Link style={{width: '10rem'}} to="/login">Already a member?</Link>
+                            <a style={{margin: '0 20px'}}>|</a>
+                            <Link style={{width: '10rem'}} to="/verification">Verify your account!</Link>
+                          </div>
                         </div>
                     </form>
                 </div>

@@ -13,11 +13,11 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route index element={<Login/>}></Route>
-          <Route path="/dentalhealthrecord" element={<DentalHealthRecord/>}></Route>
+          <Route path="/dentalhealthrecord/:type/:dentId" element={<DentalHealthRecord/>}></Route>
           <Route path="/registration" element={<Registration/>}></Route>
           <Route path="/login" element={<Login/>}></Route>
           <Route path="/verification" element={<Verification/>}></Route>
-          <Route path="/profile/:userType/:userId" element={<Profile/>}></Route>
+          <Route path="/profile/:userId" element={<Profile/>}></Route>
           <Route path="/referral" element={<Referral/>}></Route>
           <Route path="/consent" element={<Consent/>}></Route>
         </Routes>

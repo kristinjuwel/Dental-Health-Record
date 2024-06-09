@@ -181,3 +181,48 @@ input[type="submit"]:hover {
         font-size: 14px; /* Optionally reduce font size for readability */
     }
 }
+
+.otherActions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.notregistered {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1rem;
+    color: black;
+}
+
+.notregisteredreg {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1rem;
+    color: black;
+    white-space: nowrap;
+
+}
+
+.notregistered a {
+    text-decoration: none;
+}
+
+.notregisteredreg a {
+    text-decoration: none;
+    color: white;
+}
+
+.notregisteredreg a:hover {
+    text-decoration: underline;
+    color: white;
+}
+.notregistered a:hover {
+    text-decoration: underline;
+    color: #2aafce;
+}
