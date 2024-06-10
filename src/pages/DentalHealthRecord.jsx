@@ -9,6 +9,8 @@ import Icon from '@mdi/react';
 import { mdiEraser } from '@mdi/js';
 import FormatColorResetIcon from '@mui/icons-material/FormatColorReset';
 import SaveIcon from '@mui/icons-material/Save';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const DentalHealthRecord = () => {
   const { dentId, type } = useParams();
@@ -22,6 +24,7 @@ const DentalHealthRecord = () => {
 
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
+  const [showDrawingOptions, setShowDrawingOptions] = useState(true);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState('black'); // Default: red
   const [thickness, setThickness] = useState(5); // Default: 5
@@ -64,6 +67,32 @@ const DentalHealthRecord = () => {
   const [dentImage, setDentImage] = useState(null);
   const [patSign, setPatSign] = useState(null);
 
+  const pdfRef = useRef();
+
+  const downloadPDF = async () => {
+    const input = pdfRef.current;
+    const currentPosition = input.scrollTop;
+    const originalHeight = input.style.height;
+    input.style.height = 'auto';
+
+    const canvas = await html2canvas(input, {
+      dpi: 300,
+      scale: 3
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+    const pdfWidth = canvas.width;
+    const pdfHeight = canvas.height;
+    const doc = new jsPDF('p', 'px', [pdfWidth, pdfHeight]);
+
+    doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    doc.save('Dental_Health_Record.pdf');
+
+    input.style.height = originalHeight;
+    input.scrollTop = currentPosition;
+    setShowDrawingOptions(false);
+  };
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     if (name === 'birthday') {
@@ -79,16 +108,12 @@ const DentalHealthRecord = () => {
     }
   };
   
-  
-
-
   const handleFormSubmit = async () => {
-
     const mappedDentalExam = {
       rank: dentalExam.rank,
       firstName: dentalExam.firstName,
       middleName: dentalExam.middleName,
-      middleName: dentalExam.lastName,
+      lastName: dentalExam.lastName,
       birthday: dentalExam.birthday,
       unitAssign: dentalExam.unitAssign,
       address: dentalExam.address,
@@ -104,28 +129,26 @@ const DentalHealthRecord = () => {
       complaint: dentalExam.complaint,
       medHist: dentalExam.medHist,
       bp: `${dentalExam.bpSystolic},${dentalExam.bpDiastolic}`,
-      dentistName: dentName,
+      dentistId: dentId,
       completionStatus: 'unsigned',
-      patImage: patImage,
-      dentImage: dentImage,
-      patSign: patSign
-
     };
-
-
+  
+    const formData = new FormData();
+    formData.append('dentalExam', new Blob([JSON.stringify(mappedDentalExam)], { type: 'application/json' }));
+    formData.append('patImage', patImage);
+    formData.append('dentImage', dentImage);
+    formData.append('patSign', patSign);
+  
     try {
       const response = await fetch('http://localhost:8080/dental', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(mappedDentalExam),
+        body: formData,
       });
-
+  
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
-
+  
       const responseData = await response.json();
       console.log('Response:', responseData);
       // Handle response data as needed
@@ -134,6 +157,7 @@ const DentalHealthRecord = () => {
       // Handle error as needed
     }
   };
+  
 
   const addRow = () => {
     setRows([...rows, { tdate: "", tdiag: "", treatment: "", remarks: "" }]);
@@ -187,8 +211,6 @@ const DentalHealthRecord = () => {
       
     });
   };
-  
-
   
   const handleCheckboxChange = (event) => {
     const { name, checked } = event.target;
@@ -381,7 +403,7 @@ const DentalHealthRecord = () => {
 
   return (
     <div className="center-wrapper">
-      <div className="records-container">
+      <div className="records-container" ref={pdfRef}>
         <h1 className="title" style={{ textAlign: "center" }}>BFP Dental Health Record</h1>
         <h3 className="subtitle">SECTION I: PATIENT DATA</h3>
         <form className="dental-record" >
@@ -418,8 +440,8 @@ const DentalHealthRecord = () => {
               <input type="text" name="lastName" id="lastName"  onChange={handleChange} />
             </div>
             <div className="input-field" style={{ paddingRight: "20px" }}>
-              <label htmlFor="firstname">First Name*</label>
-              <input type="text" name="firstname" id="firstName" onChange={handleChange} />
+              <label htmlFor="firstName">First Name*</label>
+              <input type="text" name="firstName" id="firstName" onChange={handleChange} />
             </div>
             <div className="input-field" style={{ paddingRight: "20px" }}>
               <label htmlFor="middleName">Middle Name</label>
@@ -427,7 +449,7 @@ const DentalHealthRecord = () => {
             </div>
             <div className="input-field">
               <label htmlFor="birthday">Date of Birth*</label>
-              <input type="text" name="birthday" id="birthday" onChange={handleChange} />
+              <input type="date" name="birthday" id="birthday" onChange={handleChange} />
             </div>
             <div className="picture-placeholder" style={{ cursor: "pointer" }}>
               <input
@@ -556,6 +578,7 @@ const DentalHealthRecord = () => {
               />
             </div>
             {/* Options for drawing */}
+            {showDrawingOptions && ( 
             <div className='pens-container'>
             
 							<div className="penthickness">
@@ -603,7 +626,9 @@ const DentalHealthRecord = () => {
 								Save Drawing
 							</button>
           	</div>
+          )}
           </div>
+
         <label htmlFor="calculus" style={{ width: "120px" }}>A. CALCULUS</label>
           <div>
             <input type="radio" id="mild" name="calculus" value="Mild" onChange={handleChange} />
@@ -680,9 +705,6 @@ const DentalHealthRecord = () => {
   </div>
 </div>
 
-
-   
-
           <div className='middlelast' name='middlelast'>
             <div className="input-field" style={{ paddingRight: '40px', textAlign: 'center' }}>
               {image ? (
@@ -714,7 +736,7 @@ const DentalHealthRecord = () => {
                 type="text"
                 name="dentist"
                 id="dentist"
-                style={{ border: "none", borderBottom: "1px solid darkgray", minHeight: "65px", paddingBottom: "0" }}
+                style={{ border: "none", borderBottom: "1px solid darkgray", minHeight: "65px", paddingBottom: "0", textAlign: "center" }}
                 value={dentName} // Set the value to the dentistName variable
                 disabled // Disable the input field to prevent user input
               />
@@ -727,7 +749,7 @@ const DentalHealthRecord = () => {
             <div className="input-field" style={{ paddingRight: '40px', textAlign: 'center' }}>
               <label htmlFor="noted">Noted by:</label>
               {image1 ? (
-                <div onClick={handleImageClick1} style={{ cursor: 'pointer' }}>
+                <div onClick={handleImageClick1} style={{ cursor: 'pointer'}}>
                   <img src={image1} alt="Signature" style={{ marginTop: '10px', maxWidth: '100%', maxHeight: '50px' }} />
                   <label htmlFor="sign" style={{ textAlign: 'center', borderTop: "1px solid darkgray" }}>Chief, Dental Service BFP National Headquarters</label>
                 </div>
@@ -753,28 +775,59 @@ const DentalHealthRecord = () => {
               <thead >
                 <tr>
                   <td style={{ width: '10%' }}>DATE</td>
-                  <td style={{ width: '30%' }}>DIAGNOSIS</td>
-                  <td style={{ width: '30%' }}>TREATMENT</td>
-                  <td style={{ width: '30%' }}>REMARKS</td>
+                  <td style={{ width: '27%' }}>DIAGNOSIS</td>
+                  <td style={{ width: '27%' }}>TREATMENT</td>
+                  <td style={{ width: '27%' }}>REMARKS</td>
+                  <td><button type="button" onClick={addRow} style={{width: "95px", backgroundColor: "#2aafce", color: "#fff"}}>Add Row</button></td>
                 </tr>
               </thead>
               <tbody>
 								{rows.map((row, index) => (
 									<tr key={index}>
-										<td><input type="text" name="tdate" id={`tdate-${index}`} value={row.tdate} onChange={(e) => handleRowChange(e, index)} /></td>
-										<td><input type="text" name="tdiag" id={`tdiag-${index}`} style={{ width: "100%" }} value={row.tdiag} onChange={(e) => handleRowChange(e, index)} /></td>
-										<td><input type="text" name="treatment" id={`treatment-${index}`} style={{ width: "100%" }} value={row.treatment} onChange={(e) => handleRowChange(e, index)} /></td>
-										<td><input type="text" name="remarks" id={`remarks-${index}`} style={{ width: "100%" }} value={row.remarks} onChange={(e) => handleRowChange(e, index)} /></td>
-										<td><button type="button" onClick={() => deleteRow(index)}>Delete</button></td>
+										<td><input type="date" name="tdate" style={{padding: "9px"}} id={`tdate-${index}`} value={row.tdate} onChange={(e) => handleRowChange(e, index)} /></td>
+										<td><input type="text" name="tdiag" id={`tdiag-${index}`} style={{ width: "100%", padding: "9px" }} value={row.tdiag} onChange={(e) => handleRowChange(e, index)} /></td>
+										<td><input type="text" name="treatment" id={`treatment-${index}`} style={{ width: "100%", padding: "9px" }} value={row.treatment} onChange={(e) => handleRowChange(e, index)} /></td>
+										<td><input type="text" name="remarks" id={`remarks-${index}`} style={{ width: "100%", padding: "9px" }} value={row.remarks} onChange={(e) => handleRowChange(e, index)} /></td>
+										<td><button type="button" onClick={() => deleteRow(index)} style={{width: "95px", backgroundColor: "#800000", color: "#fff"}}>Delete</button></td>
 									</tr>
 								))}
 							</tbody>
 						</table>
           </div>
-					<button type="button" onClick={addRow}>Add Row</button>
-          <button type="button" value="Submit Dental Health Record" onClick={handleFormSubmit}/>
+          <button 
+            type="button" 
+            onClick={handleFormSubmit} 
+            style={{ 
+              width: "100%", 
+              backgroundColor: "#2aafce", 
+              color: "#fff", 
+              textAlign: "center",
+              display: "block", 
+              lineHeight: "0px",   
+              padding: "0",          
+            }}
+          >
+            Submit Dental Health Record
+          </button>
         </form>
       </div>
+      <button
+        onClick={downloadPDF}
+        style={{
+          position: "absolute",
+          top: "3%",
+          right: "2%",
+          backgroundColor: "#2aafce",
+          color: "#fff",
+          border: "none",
+          padding: "10px 20px",
+          borderRadius: "5px",
+          cursor: "pointer",
+          width: "150px"
+        }}
+      >
+        Download PDF
+      </button>
     </div>
   )
 }

@@ -23,7 +23,7 @@ const Verification = () => {
       event.preventDefault(); // Prevent the default form submission behavior
       
       try {
-          const response = await fetch(`http://localhost:8080/patientverify?email=${storedEmail}&otp=${verificationCode}`, {
+          const response = await fetch(`http://localhost:8080/verify?email=${storedEmail}&otp=${verificationCode}`, {
               method: 'POST'
           });
   
