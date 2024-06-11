@@ -23,7 +23,11 @@ const Login = () => {
             // Login successful
             const responseData = await response.text();
             console.log('Login successful');
-            navigate(`/profile/${responseData}`);            
+            if(responseData==="0"){
+              navigate('/admin');
+            }
+            else{
+            navigate(`/profile/${responseData}`);     }       
         } else {
             // Login failed
             const errorMessage = await response.text();

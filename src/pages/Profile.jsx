@@ -1,20 +1,26 @@
-import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import React, { useRef, useState, useEffect } from 'react';
+import '../styles/Profile.css';
 
 const Profile = () => {
   const { userId } = useParams();
-  const [userData, setUserData] = useState(null);
-  const [isPersonnelOpen, setIsPersonnelOpen] = useState(false);
-  const [isDependentOpen, setIsDependentOpen] = useState(false);
+
+  const [isConsentOpen, setIsConsentOpen] = useState(false);
+  const [isReferralOpen, setIsReferralOpen] = useState(false);
   const [isUnsignedOpen, setIsUnsignedOpen] = useState(false);
   const [isCompletedOpen, setIsCompletedOpen] = useState(false);
   const [isJuanOpen, setIsJuanOpen] = useState(false);
+  const [isGenerateFormsOpen, setIsGenerateFormsOpen] = useState(false);
+  const [isDentalRecordOpen, setIsDentalRecordOpen] = useState(false);
 
-  const togglePersonnel = () => setIsPersonnelOpen(!isPersonnelOpen);
-  const toggleDependent = () => setIsDependentOpen(!isDependentOpen);
+  const toggleConsent = () => setIsConsentOpen(!isConsentOpen);
+  const toggleReferral = () => setIsReferralOpen(!isReferralOpen);
   const toggleUnsigned = () => setIsUnsignedOpen(!isUnsignedOpen);
   const toggleCompleted = () => setIsCompletedOpen(!isCompletedOpen);
   const toggleJuan = () => setIsJuanOpen(!isJuanOpen);
+  const toggleGenerateForms = () => setIsGenerateFormsOpen(!isGenerateFormsOpen);
+  const toggleDentalRecord = () => setIsDentalRecordOpen(!isDentalRecordOpen);
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -39,78 +45,79 @@ const Profile = () => {
   if (!userData) {
     return <div>Loading...</div>;
   }
-
   return (
-    <div className="container">
-    <div className="general-info-container" style={{width: "70vw", flex: "0.7"}}>
-    <h1 className="title" style={{textAlign: "left"}}>Dentist Profile</h1>
-      <form className="registration">
-          <div className="middlelast" name='middlelast'> 
-            <div className="profile-details">
-            </div>
-            <div className="input-field" style={{paddingLeft: "20px", marginTop: "-20px"}}>
-                  <h2 className='fullname'>{userData.user.firstName} {userData.user.middleName} {userData.lastName} </h2>
-                  <p className='email'>Email address: {userData.user.email}</p>
-                  <p className='birthdate'>Date of Birth: {userData.user.birthday}</p >
-                  <p className='age'>Age: {userData.user.age}</p>
-                  <p className='address'>Home Address: {userData.user.address} </p>
-                  <p className='phonenumber'>Contact Number: {userData.user.contactNumber}</p>
-                  <p className='license'>License Number: {userData.licenseNo}</p>
-                  <p className='clinic_name'>Clinic: {userData.clinic}</p>
-                  <p className='clinic_loc'>Clinic Location: {userData.clinicLocation}</p>
-              </div>
-          </div>
-      </form>
-    </div>
-    <div className="registration-container" style={{width: "30vw", flex: "0.3", overflow: "auto"}}>
-      <div className="signin-signup">
-      <h1 className="title" style={{textAlign: "left", marginLeft: "-20px"}}>Forms</h1>
-      <div className="input-field">
-        <h3 style={{marginLeft: "-20px"}}>Generate New Forms</h3>
-        <h4>
-          Dental Health Record
-        </h4>
-        <h4 onClick={togglePersonnel} style={{ cursor: 'pointer', paddingLeft: "20px" }}>
-          For Personnel
-        </h4>
-        {isPersonnelOpen && (
-          <>
-            <p style={{paddingLeft:"40px"}}>Juan Dela Cruz</p>
-          </>
-        )}
-        <h4 onClick={toggleDependent} style={{ cursor: 'pointer', paddingLeft: "20px" }}>
-          For Dependent
-        </h4>
-        {isDependentOpen && (
-          <>
-            <p style={{paddingLeft:"40px"}}>Juana Dela Cruz</p>
-          </>
-        )}
-        <h4>Consent Form</h4>
-        <h4>Referral Form</h4>
-        <h3 onClick={toggleUnsigned} style={{ cursor: 'pointer', marginLeft: "-20px" }}>
-          Unsigned Forms
-        </h3>
-        {isUnsignedOpen && (
-          <>
-            <p>Juan Dela Cruz</p>
-            <p>John Doe</p>
-          </>
-        )}
-        <h3 onClick={toggleCompleted} style={{ cursor: 'pointer', marginLeft: "-20px" }}>
-          Completed Forms
-        </h3>
-        {isCompletedOpen && (
-          <>
-            <p onClick={toggleJuan} style={{ cursor: 'pointer' }}>Juan Dela Cruz</p>
-            {isJuanOpen && <p style={{marginLeft: "40px"}}>Dental Health Record</p>}
-          </>
-        )}
-      </div>
-      </div>
-    </div>
-  </div>
-  )
-}
+    <div className="profile-container">
+      <div className="profile-info">
+        <h1 className="profile-title">My Profile</h1>
+        <div className="profile-details">
+          <h2 className="profile-name">{userData.user.firstName} {userData.user.middleName} {userData.user.lastName}</h2>
+          <h5>Registered Dentist</h5>
 
-export default Profile
+          <h4>Account Information</h4>
+          <p className="profile-item">Email address: {userData.user.email}</p>
+          <h4>Personal Information</h4>
+          <p className="profile-item">Date of Birth: {userData.user.birthday}</p>
+          <p className="profile-item">Age: {userData.user.age}</p>
+          <p className="profile-item">Home Address: {userData.user.address}</p>
+          <p className="profile-item">Contact Number: {userData.user.contactNumber}</p>
+          <h4>Dental Information</h4>
+          <p className="profile-item">License Number: {userData.licenseNo}</p>
+          <p className="profile-item">Clinic: {userData.clinic}</p>
+          <p className="profile-item">Clinic Location: {userData.clinicLoc}</p>
+        </div>
+      </div>
+      <div className="forms-section">
+        <h1 className="forms-title">Forms</h1>
+        <div className="forms-container">
+          <h3 className="form-category" onClick={toggleGenerateForms}>
+            <span className={`arrow ${isGenerateFormsOpen ? 'open' : ''}`}>v</span> Generate New Forms
+          </h3>
+          {isGenerateFormsOpen && (
+            <>
+              <h4 className="form-item" onClick={toggleDentalRecord}>
+                <span className={`arrow ${isDentalRecordOpen ? 'open' : ''}`}>v</span> Dental Health Record
+              </h4>
+              {isDentalRecordOpen && (
+                <>
+                  <p className="form-item"><a href={`/dentalhealthrecord/patient/${userId}`} target="_blank" rel="noopener noreferrer">For Personnel</a></p>
+                  <p className="form-item" style={{ marginBottom: '10px' }}><a href={`/dentalhealthrecord/dependent/${userId}`}  target="_blank" rel="noopener noreferrer">For Dependent</a></p>
+                </>
+              )}
+
+
+              {/* <h4 className="form-item" onClick={toggleConsent}>
+                <span className={`arrow ${isConsentOpen ? 'open' : ''}`}>v</span> Consent Form
+              </h4> */}
+              {/* {isConsentOpen && (
+                <p className="form-detail">Juan Dela Cruz</p>
+              )} */}
+              {/* <h4 className="form-item" onClick={toggleReferral}>
+                <span className={`arrow ${isReferralOpen ? 'open' : ''}`}>v</span> Referral Form
+              </h4>
+              {isReferralOpen && (
+                <p className="form-detail">Juana Dela Cruz</p>
+              )} */}
+            </>
+          )}
+          {/* <h3 className="form-category" onClick={toggleUnsigned}>
+            <span className={`arrow ${isUnsignedOpen ? 'open' : ''}`}>v</span> Unsigned Forms
+          </h3>
+          {isUnsignedOpen && (
+            <>
+              <p className="form-detail">Juan Dela Cruz</p>
+              <p className="form-detail">John Doe</p>
+            </>
+          )}
+          <h3 className="form-category" onClick={toggleCompleted}>
+            <span className={`arrow ${isCompletedOpen ? 'open' : ''}`}>v</span> Completed Forms
+          </h3>
+          {isCompletedOpen && (
+            <p className="form-detail">Dental Health Record</p>
+          )} */}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Profile;

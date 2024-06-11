@@ -1,16 +1,80 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import '../styles/Record.css';
 import '../styles/Login.css';
+import { useParams } from 'react-router-dom';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const Referral = () => {
+    const { dentId, examId } = useParams();
+    const [referral, setReferral] = useState([]);
     function applyStylesOnClick(element) {
         element.style.border = '1px solid red';
         element.style.borderRadius = '25px';
       }
+
+      useEffect(() => {
+        const fetchConsents = async () => {
+            try {
+                const response = await fetch(`http://localhost:8080/referral/${dentId}/${examId}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                setReferral(data);
+                console.log(data);
+            } catch (error) {
+                console.error('Error fetching consents:', error);
+            }
+        };
+
+        fetchConsents();
+    }, [dentId, examId]);
+    const pdfRef = useRef();
+
+    const downloadPDF = async () => {
+
+      const input = pdfRef.current;
+      const currentPosition = input.scrollTop;
+      const originalHeight = input.style.height;
+      input.style.height = 'auto';
+  
+      const canvas = await html2canvas(input, {
+        dpi: 300,
+        scale: 3
+      });
+  
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const pdfWidth = canvas.width;
+      const pdfHeight = canvas.height;
+      const doc = new jsPDF('p', 'px', [pdfWidth, pdfHeight]);
+  
+      doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      doc.save('Dental_Referral.pdf');
+  
+      input.style.height = originalHeight;
+      input.scrollTop = currentPosition;
       
+      
+    };
+    function formatPurpose(purpose) {
+        if (!purpose) return ''; // Return empty string if purpose is undefined or null
+        if (purpose === 'initial,-,-') {
+            return 'Initial';
+        }
+        else if(purpose ===",-,-"){
+            return 'None';
+        }
+        else {
+                return purpose;
+            }
+    
+    };
+
+    
   return (
     <div className="center-wrapper">
-      <div className="records-container">
+      <div className="records-container"  ref={pdfRef}>
         <h1 className="title" style={{textAlign: "center"}}>DENTAL SERVICE REFERRAL FORM</h1>
         <form className="dental-referral">
         <div className="middlelast" name='middlelast'>
@@ -27,22 +91,27 @@ const Referral = () => {
         <div className="middlelast" name='middlelast'>
             <div className="input-field" style={{paddingRight: "20px"}}>
                 <label htmlFor="name">Patient's Name </label>
-                <input type="text" name="name" id="name" />
+                <input type="text" name="name" id="name" value={referral.patientName} readOnly/>
             </div>
             <div className="input-field" style={{paddingRight: "20px"}}>
                 <label htmlFor="age">Age </label>
-                <input type="text" name="age" id="age" />
+                <input type="text" name="age" id="age" value={referral.patientAge} readOnly/>
             </div>
-            <div className="input-field" >
-                <label htmlFor="sex">Sex </label>
-                <input type="text" name="sex" id="sex" />
+            <div className="input-field">
+                <label htmlFor="sex">Sex</label>
+                <select name="sex" id="sex">
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
             </div>
+
         </div>
 
         <div className="middlelast" name='middlelast'>
             <div className="input-field" style={{paddingRight: "20px"}}>
                 <label htmlFor="address">Home Address </label>
-                <input type="text" name="address" id="address" />
+                <input type="text" name="address" id="address" value={referral.patientAddress} readOnly/>
             </div>
             <div className="input-field">
                 <label htmlFor="date">Date </label>
@@ -51,10 +120,17 @@ const Referral = () => {
         </div>
 
         <div className="middlelast" name='middlelast'>
-            <div className="input-field" >
-                <label htmlFor="purpose">Purpose </label>
-                <input type="text" name="purpose" id="purpose" />
-            </div>
+        <div className="input-field">
+    <label htmlFor="purpose">Purpose</label>
+    <input
+        type="text"
+        name="purpose"
+        id="purpose"
+        value={formatPurpose(referral.purpose)}
+        readOnly // Make the input field read-only
+    />
+</div>
+
         </div>
 
         <table style={{width: "100%", borderTop: "2px solid black", paddingTop: "20px"}}>
@@ -180,16 +256,33 @@ const Referral = () => {
         </div>
 
         <div className="input-field" style={{paddingRight: "20px", marginLeft: "auto", width: "300px", display: "flex", alignItems: "center", justifyContent: "flex-end"}}>
-            <input type="text" name="dentist_name" id="dentist_name" />
-            <label htmlFor="dentist_name" style={{marginLeft: "20px"}}>DMD </label>
+        <p style={{ textDecoration: 'underline'}}>{ referral.dentistName }</p>
+        <label htmlFor="dentist_name" style={{marginLeft: "20px"}}>DMD </label>
         </div>
-        <div className="input-field" style={{paddingRight: "20px", marginLeft: "auto", width: "300px", display: "flex", alignItems: "center", justifyContent: "flex-end"}}>
-            <label htmlFor="license" style={{marginRight: "20px", width: "180px"}}>License No. </label>
-            <input type="text" name="license" id="license" />
+        <div className="input-field" style={{marginLeft: "auto", width: "250px", display: "flex", alignItems: "center", justifyContent: "flex-end"}}>
+            <label htmlFor="license" style={{marginRight: "0px", width: "120px"}}>License No. </label>
+            <p style={{ textDecoration: 'underline'}}>{ referral.dentistLicense }</p>
+
         </div>
 
         
-        <input type="submit" value="Submit Dental Service Referral Form" style={{marginTop: "20px"}}/>
+        <button
+        onClick={downloadPDF}
+        style={{
+          position: "absolute",
+          top: "3%",
+          right: "2%",
+          backgroundColor: "#2aafce",
+          color: "#fff",
+          border: "none",
+          padding: "10px 20px",
+          borderRadius: "5px",
+          cursor: "pointer",
+          width: "150px"
+        }}
+      >
+        Save PDF
+      </button>
         </form>
         </div>
     </div>

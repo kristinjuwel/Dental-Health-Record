@@ -14,6 +14,7 @@ import jsPDF from 'jspdf';
 
 const DentalHealthRecord = () => {
   const { dentId, type } = useParams();
+  const [examId, setExamId] = useState(null);
   const [dentName, setDentName] = useState('');
   const [image, setImage] = useState(null);
   const fileInputRef = useRef(null);
@@ -21,7 +22,7 @@ const DentalHealthRecord = () => {
   const fileInputRef1 = useRef(null);
   const [prof, setProf] = useState(null);
   const imgInputRef = useRef(null);
-
+  const [buttonsVisible, setButtonsVisible] = useState(true);
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
   const [showDrawingOptions, setShowDrawingOptions] = useState(true);
@@ -33,18 +34,75 @@ const DentalHealthRecord = () => {
   const [undos, setUndos] = useState([]);
   const [penShape, setPenShape] = useState('circle'); // Default: circle
 
-	const [showInitialDate, setShowInitialDate] = useState(false);
+  const [showInitialDate, setShowInitialDate] = useState(false);
   const [showTrainingDate, setShowTrainingDate] = useState(false);
   const [showPromotionDate, setShowPromotionDate] = useState(false);
 
-	const [rows, setRows] = useState([{ tdate: "", tdiag: "", treatment: "", remarks: "" }]);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+
+
+  const toggleButtonsVisibility = () => {
+    setButtonsVisible(!buttonsVisible);
+  };
+
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch(`http://localhost:8080/services/exam/${examId}`);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      data.forEach(service => {
+        addToConsent(service.treatment, service.date, examId);
+      });
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    }
+  };
+  const addToConsent = async (treatment, treatDate, examId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/consent/${treatDate}/${examId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(treatment) // Send treatment as string
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const result = await response.text();
+      window.location.href = `/consent/${dentId}/${examId}`;
+      console.log('Add to consent response:', result);
+    } catch (error) {
+      console.error('Error adding to consent:', error);
+    }
+  };
+
+
+  const handlePopupClose = () => {
+    setIsPopupVisible(false);
+    window.location.href = `/profile/${dentId}`;
+
+  };
+
+  const handlePopupYes = (examId) => {
+    setIsPopupVisible(false);
+    fetchServices(examId);
+
+  };
+
+  const [rows, setRows] = useState([{ tdate: "", tdiag: "", treatment: "", remarks: "" }]);
   const [dentalExam, setDentalExam] = useState({
     rank: '',
     firstName: '',
     middleName: '',
     birthday: '',
     unitAssign: '',
-    address:'',
+    address: '',
     contactNumber: '',
     sponsor: '',
     initial: '',
@@ -58,10 +116,10 @@ const DentalHealthRecord = () => {
     calculus: '',
     remarks: '',
     complaint: '',
-    medHist:'',
+    medHist: '',
     bpSystolic: '',
     bpDiastolic: '',
-    date:''
+    date: ''
   });
   const [patImage, setPatImage] = useState(null);
   const [dentImage, setDentImage] = useState(null);
@@ -70,6 +128,9 @@ const DentalHealthRecord = () => {
   const pdfRef = useRef();
 
   const downloadPDF = async () => {
+    
+    setShowDrawingOptions(false);
+    toggleButtonsVisibility();
     const input = pdfRef.current;
     const currentPosition = input.scrollTop;
     const originalHeight = input.style.height;
@@ -90,7 +151,8 @@ const DentalHealthRecord = () => {
 
     input.style.height = originalHeight;
     input.scrollTop = currentPosition;
-    setShowDrawingOptions(false);
+
+    
   };
 
   const handleChange = (event) => {
@@ -99,7 +161,7 @@ const DentalHealthRecord = () => {
       setDentalExam(prevState => ({
         ...prevState,
         [name]: value,
-          }));
+      }));
     } else {
       setDentalExam(prevState => ({
         ...prevState,
@@ -107,8 +169,27 @@ const DentalHealthRecord = () => {
       }));
     }
   };
-  
+
   const handleFormSubmit = async () => {
+    setShowDrawingOptions(false);
+    setButtonsVisible(false);
+    saveDrawing();
+    if (!patImage || !dentImage || !patSign) {
+      alert("Please upload all required images.");
+      return;
+    }
+
+    // Validate Services Rendered section
+    const hasValidServiceRow = rows.some(row =>
+      Object.values(row).some(value => value.trim() !== "")
+    );
+
+    if (!hasValidServiceRow) {
+      alert("At least one service rendered row must be filled.");
+      return;
+    }
+
+
     const mappedDentalExam = {
       rank: dentalExam.rank,
       firstName: dentalExam.firstName,
@@ -132,51 +213,93 @@ const DentalHealthRecord = () => {
       dentistId: dentId,
       completionStatus: 'unsigned',
     };
-  
+
     const formData = new FormData();
     formData.append('dentalExam', new Blob([JSON.stringify(mappedDentalExam)], { type: 'application/json' }));
     formData.append('patImage', patImage);
     formData.append('dentImage', dentImage);
     formData.append('patSign', patSign);
-  
+
     try {
       const response = await fetch('http://localhost:8080/dental', {
         method: 'POST',
         body: formData,
       });
-  
+
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
-  
+
       const responseData = await response.json();
       console.log('Response:', responseData);
-      // Handle response data as needed
+
+      setExamId(responseData.examId);
+      for (const row of rows) {
+        await postData(row, responseData.examId);
+        console.log(examId);
+      }
+      handleDownloadAndShowPopup();
+
     } catch (error) {
       console.error('Error:', error);
       // Handle error as needed
     }
   };
-  
 
-  const addRow = () => {
-    setRows([...rows, { tdate: "", tdiag: "", treatment: "", remarks: "" }]);
+  const handleDownloadAndShowPopup = async () => {
+    setShowDrawingOptions(false);
+    setButtonsVisible(false);
+    await downloadPDF(); // Wait until downloadPDF() completes
+    setIsPopupVisible(true);
   };
 
-  const deleteRow = (index) => {
-    const newRows = rows.filter((_, rowIndex) => rowIndex !== index);
-    setRows(newRows);
-  };
+
+
 
   const handleRowChange = (e, index) => {
     const { name, value } = e.target;
-    const newRows = rows.map((row, rowIndex) => {
-      if (index === rowIndex) {
-        return { ...row, [name]: value };
-      }
-      return row;
-    });
+    const newRows = [...rows];
+    newRows[index][name] = value;
     setRows(newRows);
+  };
+
+  const addRow = () => {
+    setRows([...rows, { tdate: '', tdiag: '', treatment: '', remarks: '' }]);
+  };
+
+  const deleteRow = (index) => {
+    const newRows = rows.filter((row, i) => i !== index);
+    setRows(newRows);
+  };
+
+  const postData = async (row, myExamId) => {
+    const url = 'http://localhost:8080/services';
+    const data = {
+      examId: myExamId,
+      date: row.tdate,
+      diagnosis: row.tdiag,
+      treatment: row.treatment,
+      remarks: row.remarks
+    };
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const result = await res.json();
+      console.log('Post successful:', result);
+    } catch (error) {
+      console.error('Error:', error);
+    }
   };
 
   const handleMedicalHistoryChange = (event) => {
@@ -184,15 +307,15 @@ const DentalHealthRecord = () => {
     const condition = name.replace('yes', '').replace('no', '');
     const isYesCheckbox = name.startsWith('yes');
     const oppositeCheckbox = isYesCheckbox ? `no${condition}` : `yes${condition}`;
-  
+
     // Uncheck the opposite checkbox
     document.getElementById(oppositeCheckbox).checked = !checked;
-  
+
     // Handle the change in state
     setDentalExam(prevState => {
       const currentHist = prevState.medHist.split(',').filter(item => item);
       let newHist;
-      
+
       if (isYesCheckbox) {
         newHist = checked
           ? [...currentHist, condition]
@@ -206,12 +329,12 @@ const DentalHealthRecord = () => {
       return {
         ...prevState,
         medHist: newHist.join(',')
-        
+
       };
-      
+
     });
   };
-  
+
   const handleCheckboxChange = (event) => {
     const { name, checked } = event.target;
     handleChange(event);
@@ -308,19 +431,19 @@ const DentalHealthRecord = () => {
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-  
+
     if (penShape === 'circle') {
       ctx.lineCap = 'round';
     } else if (penShape === 'square') {
       ctx.lineCap = 'butt';
     }
-  
+
     drawLine(lastX, lastY, x, y);
     setLastX(x);
     setLastY(y);
   };
-  
-  
+
+
   const drawLine = (x1, y1, x2, y2) => {
     ctx.beginPath();
     ctx.moveTo(x1, y1);
@@ -340,7 +463,7 @@ const DentalHealthRecord = () => {
       setDentImage(file);
     }, 'image/png');
   };
-  
+
   const handlePlaceholderClick = () => {
     if (imgInputRef.current) {
       imgInputRef.current.click();
@@ -349,7 +472,7 @@ const DentalHealthRecord = () => {
 
   const handleImgChange = (event) => {
     const file = event.target.files[0];
-    
+
     if (file) {
       setPatImage(file);
       const reader = new FileReader();
@@ -410,34 +533,34 @@ const DentalHealthRecord = () => {
           <div className="middlelast" name='middlelast'>
             {type === 'patient' && (
               <div className="input-field" style={{ paddingRight: "20px" }}>
-                    <label htmlFor="rank">Rank*</label>
-                    <input list="rankOptions" name="rank" id="rank"  onChange={handleChange} />
-                    <datalist id="rankOptions">
-                        <option value="Fire Director" />
-                        <option value="Fire Chief Superintendent" />
-                        <option value="Fire Senior Superintendent" />
-                        <option value="Fire Superintendent" />
-                        <option value="Fire Chief Inspector" />
-                        <option value="Fire Senior Inspector" />
-                        <option value="Fire Inspector" />
-                        <option value="Senior Fire Officer 4" />
-                        <option value="Senior Fire Officer 3" />
-                        <option value="Senior Fire Officer 2" />
-                        <option value="Senior Fire Officer 1" />
-                        <option value="Fire Officer 3" />
-                        <option value="Fire Officer 2" />
-                        <option value="Fire Officer 1" />
-                        <option value="Clerk" />
-                        <option value="Civilian" />
-                        <option value="Retiree" />
-                        <option value="Non-Uniformed" />
-                        <option value="Others" />
-                    </datalist>
-                </div>
+                <label htmlFor="rank">Rank*</label>
+                <input list="rankOptions" name="rank" id="rank" onChange={handleChange} />
+                <datalist id="rankOptions">
+                  <option value="Fire Director" />
+                  <option value="Fire Chief Superintendent" />
+                  <option value="Fire Senior Superintendent" />
+                  <option value="Fire Superintendent" />
+                  <option value="Fire Chief Inspector" />
+                  <option value="Fire Senior Inspector" />
+                  <option value="Fire Inspector" />
+                  <option value="Senior Fire Officer 4" />
+                  <option value="Senior Fire Officer 3" />
+                  <option value="Senior Fire Officer 2" />
+                  <option value="Senior Fire Officer 1" />
+                  <option value="Fire Officer 3" />
+                  <option value="Fire Officer 2" />
+                  <option value="Fire Officer 1" />
+                  <option value="Clerk" />
+                  <option value="Civilian" />
+                  <option value="Retiree" />
+                  <option value="Non-Uniformed" />
+                  <option value="Others" />
+                </datalist>
+              </div>
             )}
             <div className="input-field" style={{ paddingRight: "20px" }}>
               <label htmlFor="lastName">Last Name*</label>
-              <input type="text" name="lastName" id="lastName"  onChange={handleChange} />
+              <input type="text" name="lastName" id="lastName" onChange={handleChange} />
             </div>
             <div className="input-field" style={{ paddingRight: "20px" }}>
               <label htmlFor="firstName">First Name*</label>
@@ -476,25 +599,25 @@ const DentalHealthRecord = () => {
                 <label htmlFor="unit">Unit Assignment*</label>
                 <input type="text" name="unitAssign" id="unit" list="unitOptions" onChange={handleChange} />
                 <datalist id="unitOptions">
-                        <option value="NHQ" />
-                        <option value="NFTI" />
-                        <option value="NCR" />
-                        <option value="CAR" />
-                        <option value="1" />
-                        <option value="2" />
-                        <option value="3" />
-                        <option value="4A" />
-                        <option value="4B" />
-                        <option value="5" />
-                        <option value="6" />
-                        <option value="7" />
-                        <option value="8" />
-                        <option value="9" />
-                        <option value="10" />
-                        <option value="11" />
-                        <option value="12" />
-                        <option value="13" />
-                        <option value="BARMM" />
+                  <option value="NHQ" />
+                  <option value="NFTI" />
+                  <option value="NCR" />
+                  <option value="CAR" />
+                  <option value="1" />
+                  <option value="2" />
+                  <option value="3" />
+                  <option value="4A" />
+                  <option value="4B" />
+                  <option value="5" />
+                  <option value="6" />
+                  <option value="7" />
+                  <option value="8" />
+                  <option value="9" />
+                  <option value="10" />
+                  <option value="11" />
+                  <option value="12" />
+                  <option value="13" />
+                  <option value="BARMM" />
                 </datalist>
               </div>
             )}
@@ -507,53 +630,53 @@ const DentalHealthRecord = () => {
               <input type="text" name="contactNumber" id="phonenumber" onChange={handleChange} />
             </div>
             {type === 'dependent' &&
-            <div className="input-field" style={{marginLeft: "20px"}}>
-              <label htmlFor="sponsor">Sponsor</label>
-              <input type="text" name="sponsor" id="sponsor" onChange={handleChange}/>
-            </div>
+              <div className="input-field" style={{ marginLeft: "20px" }}>
+                <label htmlFor="sponsor">Sponsor</label>
+                <input type="text" name="sponsor" id="sponsor" onChange={handleChange} />
+              </div>
             }
           </div>
 
           <h3 className="subtitle">SECTION II: DENTAL EXAMINATION</h3>
           {type === 'patient' && (
             <div className='sectiontwodenex'>
-							<p style={{ marginTop: "-10px" }}>Purpose of Examination*</p>
-							<div className="middlelastde" name='middlelast'>
-									<div className="input-field-de">
-											<div className='insideInputField'>
-													<input type='checkbox' id='initial' name='initial' onChange={handleCheckboxChange} />
-													<label htmlFor='initial'>Initial/Consultation</label>
-													{showInitialDate && <input type="date" name="purposeDate" id="initialdate" onChange={handleChange}/>}
-											</div>
-									</div>
-									<div className="input-field-de">
-											<div className='insideInputField'>
-													<input type='checkbox' id='training' name='training' onChange={handleCheckboxChange} />
-													<label htmlFor='training'>Training</label>
-													{showTrainingDate && <input type="date" name="trainingDate" id="trainingdate" onChange={handleChange} />}
-													{showTrainingDate && 
-															<div className="insideInputFieldType">
-																	<label htmlFor="">Type:</label>
-																	<input type="text" name="trainingType" id="trainingType" onChange={handleChange} />
-															</div>
-													}
-											</div>
-									</div>
-									<div className="input-field-de">
-											<div className='insideInputField'>
-													<input type='checkbox' id='promotion' name='promotion' onChange={handleCheckboxChange} />
-													<label htmlFor='promotion'>Promotion</label>
-													{showPromotionDate && <input type="date" name="promotionDate" id="promotiondate" onChange={handleChange}/>}
-													{showPromotionDate && 
-															<div className="insideInputFieldType">
-																	<label htmlFor="">Type:</label>
-																	<input type="text" name="promotionType" id="promotionType" onChange={handleChange} />
-															</div>
-													}
-											</div>
-									</div>
-							</div>
-					</div>
+              <p style={{ marginTop: "-10px" }}>Purpose of Examination*</p>
+              <div className="middlelastde" name='middlelast'>
+                <div className="input-field-de">
+                  <div className='insideInputField'>
+                    <input type='checkbox' id='initial' name='initial' onChange={handleCheckboxChange} />
+                    <label htmlFor='initial'>Initial/Consultation</label>
+                    {showInitialDate && <input type="date" name="purposeDate" id="initialdate" onChange={handleChange} />}
+                  </div>
+                </div>
+                <div className="input-field-de">
+                  <div className='insideInputField'>
+                    <input type='checkbox' id='training' name='training' onChange={handleCheckboxChange} />
+                    <label htmlFor='training'>Training</label>
+                    {showTrainingDate && <input type="date" name="trainingDate" id="trainingdate" onChange={handleChange} />}
+                    {showTrainingDate &&
+                      <div className="insideInputFieldType">
+                        <label htmlFor="">Type:</label>
+                        <input type="text" name="trainingType" id="trainingType" onChange={handleChange} />
+                      </div>
+                    }
+                  </div>
+                </div>
+                <div className="input-field-de">
+                  <div className='insideInputField'>
+                    <input type='checkbox' id='promotion' name='promotion' onChange={handleCheckboxChange} />
+                    <label htmlFor='promotion'>Promotion</label>
+                    {showPromotionDate && <input type="date" name="promotionDate" id="promotiondate" onChange={handleChange} />}
+                    {showPromotionDate &&
+                      <div className="insideInputFieldType">
+                        <label htmlFor="">Type:</label>
+                        <input type="text" name="promotionType" id="promotionType" onChange={handleChange} />
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
           <p style={{ marginTop: "-5px" }}>MISSING TEETH AND EXISTING RESTORATIONS, DISEASES AND ABONORMALITIES</p>
           <div className='teeth-chart'>
@@ -574,62 +697,62 @@ const DentalHealthRecord = () => {
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
                 onMouseLeave={stopDrawing}
-                onContextMenu={handleEraser} 
+                onContextMenu={handleEraser}
               />
             </div>
             {/* Options for drawing */}
-            {showDrawingOptions && ( 
-            <div className='pens-container'>
-            
-							<div className="penthickness">
-								<label htmlFor="brushThickness">Pen Thickness:</label>
-								<input
-								type="range"
-								id="brushThickness"
-								name="brushThickness"
-								min="1"
-								max="20"
-								value={thickness}
-								onChange={handleThicknessChange}
-								/>
-							</div>
-							<button type="button" onClick={() => setPenShape('circle')}>
-								<DrawIcon/>
-								Pen
-							</button>
-							<button type="button" onClick={() => setPenShape('square')}>
-								<BorderColorIcon/>
-								Marker
-							</button>
-							<button type="button" onClick={handleEraser}>
-								<Icon path={mdiEraser} size={1}/>
-								Erase
-							</button>
-							<button type="button" onClick={() => handleColorChange('black')}>
-								<CircleIcon/>
-								Conditions
-							</button>
-							<button type="button" onClick={() => handleColorChange('#ff0000')}>
-								<CircleIcon />
-								Treatment Plan
-							</button>
-							<button type="button" onClick={() => handleColorChange('#0000ff')}>
-								<CircleIcon/>
-								Completed
-							</button>
-							<button type="button" onClick={handleClearAll}>
-								<FormatColorResetIcon/>
-								Clear All
-							</button>
-							<button type="button" onClick={saveDrawing}>
-								<SaveIcon/>
-								Save Drawing
-							</button>
-          	</div>
-          )}
+            {showDrawingOptions && (
+              <div className='pens-container'>
+
+                <div className="penthickness">
+                  <label htmlFor="brushThickness">Pen Thickness:</label>
+                  <input
+                    type="range"
+                    id="brushThickness"
+                    name="brushThickness"
+                    min="1"
+                    max="20"
+                    value={thickness}
+                    onChange={handleThicknessChange}
+                  />
+                </div>
+                <button type="button" onClick={() => setPenShape('circle')}>
+                  <DrawIcon />
+                  Pen
+                </button>
+                <button type="button" onClick={() => setPenShape('square')}>
+                  <BorderColorIcon />
+                  Marker
+                </button>
+                <button type="button" onClick={handleEraser}>
+                  <Icon path={mdiEraser} size={1} />
+                  Erase
+                </button>
+                <button type="button" onClick={() => handleColorChange('black')}>
+                  <CircleIcon />
+                  Conditions
+                </button>
+                <button type="button" onClick={() => handleColorChange('#ff0000')}>
+                  <CircleIcon />
+                  Treatment Plan
+                </button>
+                <button type="button" onClick={() => handleColorChange('#0000ff')}>
+                  <CircleIcon />
+                  Completed
+                </button>
+                <button type="button" onClick={handleClearAll}>
+                  <FormatColorResetIcon />
+                  Clear All
+                </button>
+                <button type="button" onClick={saveDrawing}>
+                  <SaveIcon />
+                  Save Drawing
+                </button>
+              </div>
+            )}
           </div>
 
-        <label htmlFor="calculus" style={{ width: "120px" }}>A. CALCULUS</label>
+          <label htmlFor="calculus" style={{ width: "120px" }}>A. CALCULUS</label>
           <div>
             <input type="radio" id="mild" name="calculus" value="Mild" onChange={handleChange} />
             <label htmlFor="mild">Mild</label>
@@ -645,65 +768,65 @@ const DentalHealthRecord = () => {
 
           <div className="input-field" >
             <label htmlFor="abnormalities">B. ABNORMALITIES/OCCLUSION/REMARKS</label>
-            <input type="text" name="remarks" id="abnormalities"  onChange={handleChange} />
+            <input type="text" name="remarks" id="abnormalities" onChange={handleChange} />
           </div>
 
           <h3 className="subtitle">SECTION III: CASE HISTORY</h3>
           <div className="input-field" >
             <label htmlFor="oral">Present Oral Complaint:</label>
-            <input type="text" name="complaint" id="oral" onChange={handleChange}/>
+            <input type="text" name="complaint" id="oral" onChange={handleChange} />
           </div>
-          
-         
+
+
           <div className="middlelast" name='middlelast'>
-  <div className="input-field">
-    <table>
-      <tbody style={{ width: "600px" }}>
-        <tr>
-          <td colSpan={1} style={{ width: "180px" }}>Medical History: </td>
-          <td colSpan={2} style={{ width: "180px" }}>Check the box</td>
-        </tr>
-        <tr style={{ textAlign: "center" }}>
-          <td style={{ width: "180px" }}></td>
-          <td>YES</td>
-          <td>NONE</td>
-          <td style={{ width: "180px" }}></td>
-          <td style={{ width: "100px" }}>YES</td>
-          <td>NONE</td>
-        </tr>
-        <tr>
-          <td>Diabetes</td>
-          <td><input type="checkbox" name='yesDiabetes' id='yesDiabetes' onChange={handleMedicalHistoryChange} /></td>
-          <td><input type="checkbox" name='noDiabetes' id='noDiabetes' onChange={handleMedicalHistoryChange} /></td>
-          <td colSpan={1} style={{ width: "200px" }}>History of Hypertension</td>
-          <td><input type="checkbox" name='yesHT' id='yesHT' onChange={handleMedicalHistoryChange} /></td>
-          <td><input type="checkbox" name='noHT' id='noHT' onChange={handleMedicalHistoryChange} /></td>
-          <td style={{ width: "120px", paddingLeft: "5%" }}>BP</td>
-        </tr>
-        <tr>
-          <td>Bleeding Tendency</td>
-          <td><input type="checkbox" name='yesBT' id='yesBT' onChange={handleMedicalHistoryChange} /></td>
-          <td><input type="checkbox" name='noBT' id='noBT' onChange={handleMedicalHistoryChange} /></td>
-          <td>Asthma</td>
-          <td><input type="checkbox" name='yesAsthma' id='yesAsthma' onChange={handleMedicalHistoryChange} /></td>
-          <td><input type="checkbox" name='noAsthma' id='noAsthma' onChange={handleMedicalHistoryChange} /></td>
-          <td style={{ width: "120px", paddingLeft: "5%" }}>Systolic</td>
-          <td><input type='text' name='bpSystolic' id='std' onChange={handleChange}></input></td>
-        </tr>
-        <tr>
-          <td>Drug Sensitivity</td>
-          <td><input type="checkbox" name='yesDS' id='yesDS' onChange={handleMedicalHistoryChange} /></td>
-          <td><input type="checkbox" name='noDS' id='noDS' onChange={handleMedicalHistoryChange} /></td>
-          <td>Food Allergy</td>
-          <td><input type="checkbox" name='yesFA' id='yesFA' onChange={handleMedicalHistoryChange} /></td>
-          <td><input type="checkbox" name='noFA' id='noFA' onChange={handleMedicalHistoryChange} /></td>
-          <td style={{ width: "120px", paddingLeft: "5%" }}>Diastolic</td>
-          <td><input type='text' name='bpDiastolic' id='bpd' onChange={handleChange}></input></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
+            <div className="input-field">
+              <table>
+                <tbody style={{ width: "600px" }}>
+                  <tr>
+                    <td colSpan={1} style={{ width: "180px" }}>Medical History: </td>
+                    <td colSpan={2} style={{ width: "180px" }}>Check the box</td>
+                  </tr>
+                  <tr style={{ textAlign: "center" }}>
+                    <td style={{ width: "180px" }}></td>
+                    <td>YES</td>
+                    <td>NONE</td>
+                    <td style={{ width: "180px" }}></td>
+                    <td style={{ width: "100px" }}>YES</td>
+                    <td>NONE</td>
+                  </tr>
+                  <tr>
+                    <td>Diabetes</td>
+                    <td><input type="checkbox" name='yesDiabetes' id='yesDiabetes' onChange={handleMedicalHistoryChange} /></td>
+                    <td><input type="checkbox" name='noDiabetes' id='noDiabetes' onChange={handleMedicalHistoryChange} /></td>
+                    <td colSpan={1} style={{ width: "200px" }}>History of Hypertension</td>
+                    <td><input type="checkbox" name='yesHT' id='yesHT' onChange={handleMedicalHistoryChange} /></td>
+                    <td><input type="checkbox" name='noHT' id='noHT' onChange={handleMedicalHistoryChange} /></td>
+                    <td style={{ width: "120px", paddingLeft: "5%" }}>BP</td>
+                  </tr>
+                  <tr>
+                    <td>Bleeding Tendency</td>
+                    <td><input type="checkbox" name='yesBT' id='yesBT' onChange={handleMedicalHistoryChange} /></td>
+                    <td><input type="checkbox" name='noBT' id='noBT' onChange={handleMedicalHistoryChange} /></td>
+                    <td>Asthma</td>
+                    <td><input type="checkbox" name='yesAsthma' id='yesAsthma' onChange={handleMedicalHistoryChange} /></td>
+                    <td><input type="checkbox" name='noAsthma' id='noAsthma' onChange={handleMedicalHistoryChange} /></td>
+                    <td style={{ width: "120px", paddingLeft: "5%" }}>Systolic</td>
+                    <td><input type='text' name='bpSystolic' id='std' onChange={handleChange}></input></td>
+                  </tr>
+                  <tr>
+                    <td>Drug Sensitivity</td>
+                    <td><input type="checkbox" name='yesDS' id='yesDS' onChange={handleMedicalHistoryChange} /></td>
+                    <td><input type="checkbox" name='noDS' id='noDS' onChange={handleMedicalHistoryChange} /></td>
+                    <td>Food Allergy</td>
+                    <td><input type="checkbox" name='yesFA' id='yesFA' onChange={handleMedicalHistoryChange} /></td>
+                    <td><input type="checkbox" name='noFA' id='noFA' onChange={handleMedicalHistoryChange} /></td>
+                    <td style={{ width: "120px", paddingLeft: "5%" }}>Diastolic</td>
+                    <td><input type='text' name='bpDiastolic' id='bpd' onChange={handleChange}></input></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
 
           <div className='middlelast' name='middlelast'>
             <div className="input-field" style={{ paddingRight: '40px', textAlign: 'center' }}>
@@ -728,7 +851,7 @@ const DentalHealthRecord = () => {
             </div>
 
             <div className="input-field" style={{ paddingRight: "40px" }}>
-              <input type="date" name='date' id='date' style={{ border: "none", borderBottom: "1px solid darkgray", minHeight: "65px", paddingBottom: "0" }} onChange={handleChange}/>
+              <input type="date" name='date' id='date' style={{ border: "none", borderBottom: "1px solid darkgray", minHeight: "65px", paddingBottom: "0" }} onChange={handleChange} />
               <label htmlFor="date" style={{ textAlign: "center" }}>Date</label>
             </div>
             <div className="input-field">
@@ -749,7 +872,7 @@ const DentalHealthRecord = () => {
             <div className="input-field" style={{ paddingRight: '40px', textAlign: 'center' }}>
               <label htmlFor="noted">Noted by:</label>
               {image1 ? (
-                <div onClick={handleImageClick1} style={{ cursor: 'pointer'}}>
+                <div onClick={handleImageClick1} style={{ cursor: 'pointer' }}>
                   <img src={image1} alt="Signature" style={{ marginTop: '10px', maxWidth: '100%', maxHeight: '50px' }} />
                   <label htmlFor="sign" style={{ textAlign: 'center', borderTop: "1px solid darkgray" }}>Chief, Dental Service BFP National Headquarters</label>
                 </div>
@@ -778,33 +901,46 @@ const DentalHealthRecord = () => {
                   <td style={{ width: '27%' }}>DIAGNOSIS</td>
                   <td style={{ width: '27%' }}>TREATMENT</td>
                   <td style={{ width: '27%' }}>REMARKS</td>
-                  <td><button type="button" onClick={addRow} style={{width: "95px", backgroundColor: "#2aafce", color: "#fff"}}>Add Row</button></td>
+                  {buttonsVisible && <td><button type="button" onClick={addRow} style={{ width: "95px", backgroundColor: "#2aafce", color: "#fff" }}>Add Row</button></td>}
                 </tr>
               </thead>
               <tbody>
-								{rows.map((row, index) => (
-									<tr key={index}>
-										<td><input type="date" name="tdate" style={{padding: "9px"}} id={`tdate-${index}`} value={row.tdate} onChange={(e) => handleRowChange(e, index)} /></td>
-										<td><input type="text" name="tdiag" id={`tdiag-${index}`} style={{ width: "100%", padding: "9px" }} value={row.tdiag} onChange={(e) => handleRowChange(e, index)} /></td>
-										<td><input type="text" name="treatment" id={`treatment-${index}`} style={{ width: "100%", padding: "9px" }} value={row.treatment} onChange={(e) => handleRowChange(e, index)} /></td>
-										<td><input type="text" name="remarks" id={`remarks-${index}`} style={{ width: "100%", padding: "9px" }} value={row.remarks} onChange={(e) => handleRowChange(e, index)} /></td>
-										<td><button type="button" onClick={() => deleteRow(index)} style={{width: "95px", backgroundColor: "#800000", color: "#fff"}}>Delete</button></td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+                {rows.map((row, index) => (
+                  <tr key={index}>
+                    <td><input type="date" name="tdate" style={{ padding: "9px" }} id={`tdate-${index}`} value={row.tdate} onChange={(e) => handleRowChange(e, index)} /></td>
+                    <td><input type="text" name="tdiag" id={`tdiag-${index}`} style={{ width: "100%", padding: "9px" }} value={row.tdiag} onChange={(e) => handleRowChange(e, index)} /></td>
+                    <td><input type="text" name="treatment" id={`treatment-${index}`} style={{ width: "100%", padding: "9px" }} list="treatmentOptions" value={row.treatment} onChange={(e) => handleRowChange(e, index)} /></td>
+                    <td><input type="text" name="remarks" id={`remarks-${index}`} style={{ width: "100%", padding: "9px" }} value={row.remarks} onChange={(e) => handleRowChange(e, index)} /></td>
+                    <td>
+                      {buttonsVisible && (
+                        <td>
+                          <button type="button" onClick={() => deleteRow(index)} style={{ width: "95px", backgroundColor: "#800000", color: "#fff" }}>Delete</button>
+                        </td>
+                      )}                    </td>
+                  </tr>
+                ))}
+                <datalist id="treatmentOptions">
+                  <option value="Oral Prophylaxis"></option>
+                  <option value="Dental Sealant"></option>
+                  <option value="Flouride Application"></option>
+                  <option value="Restoration"></option>
+                  <option value="Extraction"></option>
+                  <option value="Prosthodontics"></option>
+                </datalist>
+              </tbody>
+            </table>
           </div>
-          <button 
-            type="button" 
-            onClick={handleFormSubmit} 
-            style={{ 
-              width: "100%", 
-              backgroundColor: "#2aafce", 
-              color: "#fff", 
+          <button
+            type="button"
+            onClick={handleFormSubmit}
+            style={{
+              width: "100%",
+              backgroundColor: "#2aafce",
+              color: "#fff",
               textAlign: "center",
-              display: "block", 
-              lineHeight: "0px",   
-              padding: "0",          
+              display: "block",
+              lineHeight: "0px",
+              padding: "0",
             }}
           >
             Submit Dental Health Record
@@ -826,8 +962,19 @@ const DentalHealthRecord = () => {
           width: "150px"
         }}
       >
-        Download PDF
+        Save PDF
       </button>
+      {isPopupVisible && (
+        <div className="popup-overlay">
+          <div className="popup-content">
+            <h2>Generate Consent Form</h2>
+            <div className="popup-buttons">
+              <button onClick={handlePopupYes} style={{ marginRight: 10 }}> Yes</button>
+              <button onClick={handlePopupClose} style={{ backgroundColor: "#800000", color: "#fff" }}>No</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

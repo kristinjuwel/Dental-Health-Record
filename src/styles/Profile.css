@@ -1,29 +1,159 @@
 .profile-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
-  
-  .profile-picture {
-    margin-right: 20px;
-  }
-  
-  .profile-picture img {
-    max-width: 200px;
-    max-height: 200px;
-    margin-bottom: 10px;
-  }
-  
-  .profile-details {
-    flex: 1;
-  }
-  
-  .dentist-details,
-  .patient-details {
-    margin-top: 20px;
-  }
-  
-  .error {
-    color: red;
-  }
-  
+  display: flex;
+  align-items: flex-start;
+  padding: 20px;
+  margin: 20px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  width: 60vw;
+  height: 80vh;
+  overflow: hidden;
+}
+
+.profile-info {
+  width: 35%;
+}
+
+.forms-section {
+  width: 65%;
+  margin-top: 4rem;
+  border-left: 1px solid rgb(199, 199, 199);
+  padding-left: 1rem;
+  height: 90%; /* Ensures the forms-section takes the full height of the parent */
+  overflow-y: auto; /* Enables vertical scrolling */
+}
+
+.forms-title {
+  margin-bottom: 20px;
+  font-size: 24px;
+  color: #333;
+  margin-top: 2rem;
+}
+
+.profile-title {
+  font-size: 2em;
+  color: #e6e6e6;
+  text-align: start;
+  margin: 0;
+  padding: 1rem;
+  width: 70vw;
+  margin-left: -6rem;
+  padding-left: 6rem;
+  margin-top: -3rem;
+  padding-top: 3rem;
+  position: relative;
+  overflow: hidden;
+  background-color: #2aafce;
+}
+
+.profile-details {
+  padding: 10px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.profile-details h5 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: normal;
+  margin: 0;
+  margin-top: -1rem;
+  margin-bottom: 1.5rem;
+  color: #888888;
+}
+
+.profile-details h4 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: normal;
+  margin: 0;
+  color: #929292;
+}
+
+.profile-details h2 {
+  margin: 0;
+}
+
+.profile-name {
+  font-size: 1.5em;
+  color: #0c0c0c;
+  margin-bottom: 10px;
+  text-decoration: underline solid black 1px;
+}
+
+.profile-item {
+  font-size: 1em;
+  color: #000000;
+  margin: 5px 30px;
+  font-weight: bold;
+}
+
+.profile-item span {
+  font-weight: bold;
+  color: #333;
+}
+
+.forms-container {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: start;
+}
+
+.forms-container h4 {
+  margin-left: 2rem;
+}
+
+.forms-container p {
+  margin-top: 1rem;
+  margin-left: 4rem;
+  font-size: 1em;
+  font-weight: bolder;
+}
+
+.form-category,
+.form-item,
+.form-detail {
+  position: relative;
+  cursor: pointer;
+}
+
+.form-detail {
+  font-weight: normal !important;
+}
+
+.form-category::after,
+.form-item::after,
+.form-detail::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 1.5px;
+  bottom: 0;
+  left: 0;
+  background-color: #444;
+  transition: width 0.6s ease-out;
+}
+
+.form-category:hover::after,
+.form-item:hover::after,
+.form-detail:hover::after {
+  width: 100%;
+}
+
+.arrow {
+  font-family: 'Montserrat', sans-serif;
+  display: inline-block;
+  transition: transform 0.3s ease;
+  font-weight: normal;
+  color: #868686;
+  margin-right: 5px;
+  transform: rotate(-90deg); /* Initial state for the '>' arrow */
+}
+
+.arrow.open {
+  transform: rotate(0); /* Rotated state for the '⌄' arrow */
+}
