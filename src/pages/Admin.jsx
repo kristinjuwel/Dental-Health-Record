@@ -1,5 +1,9 @@
 import React from 'react'
+<<<<<<< new
 import { useNavigate } from 'react-router-dom';
+=======
+import { useNavigate, Link } from 'react-router-dom';
+>>>>>>> main
 
 const Admin = () => {
   const navigate = useNavigate(); // Initialize useNavigate hook
@@ -22,6 +26,8 @@ const Admin = () => {
             <h1 style={{textAlign: "center"}}>Admin</h1>
             <button className='regional' onClick={handleRegional} style={{backgroundColor: "#0f9fb7", color: "#fff", marginLeft: "10px", textAlign: "center"}}>Make Regional Report</button>
             <button className='national' onClick={handleNational} style={{backgroundColor: "gray", color: "#fff", marginLeft: "10px", textAlign: "center"}}>Generate National Report</button>
+            <button className='regional' onClick={handleRegional} style={{backgroundColor: "#0f9fb7", color: "#fff", marginLeft: "10px"}}>Make Regional Report</button>
+            <button className='national' onClick={handleNational} style={{backgroundColor: "gray", color: "#fff", marginLeft: "10px"}}>Generate National Report</button>
         </div>
       </div>
     </div>
