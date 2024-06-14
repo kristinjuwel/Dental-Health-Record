@@ -49,7 +49,7 @@ const Profile = () => {
     <div className="profile-container">
       <div className="profile-info">
         <h1 className="profile-title">My Profile</h1>
-        <div className="profile-details">
+        <div className="profile-details" style={{overflow: "auto"}}>
           <h2 className="profile-name">{userData.user.firstName} {userData.user.middleName} {userData.user.lastName}</h2>
           <h5>Registered Dentist</h5>
 

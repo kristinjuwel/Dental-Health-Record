@@ -1,12 +1,41 @@
 import React, {useState, useRef, useMemo} from 'react'
 import '../styles/Record.css';
 import '../styles/Login.css';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const ReportIndiv = () => {
     const [image, setImage] = useState(null);
     const [image1, setImage1] = useState(null);
     const fileInputRef = useRef(null);
     const fileInputRef1 = useRef(null);
+
+    const pdfRef = useRef();
+
+  const downloadPDF = async () => {
+    const input = pdfRef.current;
+    const currentPosition = input.scrollTop;
+    const originalHeight = input.style.height;
+    input.style.height = 'auto';
+
+    const canvas = await html2canvas(input, {
+      dpi: 300,
+      scale: 3
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+    const pdfWidth = canvas.width;
+    const pdfHeight = canvas.height;
+    const doc = new jsPDF('p', 'px', [pdfWidth, pdfHeight]);
+
+    doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    doc.save('Regional Report.pdf');
+
+    input.style.height = originalHeight;
+    input.scrollTop = currentPosition;
+
+    
+  };
   
     const [regionalEntry, setRegionalEntry] = useState({
       regionName: '',
@@ -270,7 +299,7 @@ const ReportIndiv = () => {
 
   return (
     <div className="center-wrapper">
-      <div className="records-container">
+      <div className="records-container" ref={pdfRef}>
         <h1 className="title" style={{textAlign: "center"}}>DENTAL SERVICE</h1>
         <h1 className="subtitle" style={{textAlign: "center", marginTop: "-10px"}}>MONTHLY ACCOMPLISHMENT REPORT</h1>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "-15px" }}>
@@ -509,8 +538,24 @@ const ReportIndiv = () => {
 
             <input type="submit" onClick={handleFormSubmit} value="Submit Monthly Accomplishment Report" style={{marginTop: "10px"}}/>
         </form>
-
     </div>
+    <button
+        onClick={downloadPDF}
+        style={{
+          position: "absolute",
+          top: "3%",
+          right: "2%",
+          backgroundColor: "#2aafce",
+          color: "#fff",
+          border: "none",
+          padding: "10px 20px",
+          borderRadius: "5px",
+          cursor: "pointer",
+          width: "150px"
+        }}
+      >
+        Save PDF
+      </button>
     </div>
   )
 }

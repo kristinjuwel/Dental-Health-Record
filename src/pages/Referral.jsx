@@ -33,30 +33,52 @@ const Referral = () => {
     const pdfRef = useRef();
 
     const downloadPDF = async () => {
+            const input = pdfRef.current;
+            const currentScrollTop = input.scrollTop;
+            const currentScrollLeft = input.scrollLeft;
+            const originalHeight = input.style.height;
+            const originalWidth = input.style.width;
+    
+            input.style.height = 'auto';
+            input.style.width = `${input.scrollWidth}px`;
+    
+            const pageWidth = 1300; // A4 width in pixels at 72 DPI
+            const pageHeight = 1100; // A4 height in pixels at 72 DPI
+            const contentWidth = input.scrollWidth;
+            const contentHeight = input.scrollHeight;
+    
+            const totalPages = Math.ceil(contentWidth / pageWidth);
+    
+            const pdf = new jsPDF('portrait', 'px', [pageWidth, pageHeight]);
+    
+            for (let i = 0; i < totalPages; i++) {
+                if (i > 0) pdf.addPage();
+                input.scrollLeft = i * pageWidth;
+                await new Promise(resolve => setTimeout(resolve, 300)); // Wait for rendering
+    
+                const canvas = await html2canvas(input, {
+                    dpi: 300,
+                    scale: 3,
+                    scrollX: -i * pageWidth,
+                    scrollY: 0,
+                    width: pageWidth,
+                    height: contentHeight,
+                    windowWidth: pageWidth,
+                    windowHeight: contentHeight
+                });
+    
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, contentHeight);
+            }
+    
+            pdf.save('Dental Referral.pdf');
+    
+            input.style.height = originalHeight;
+            input.style.width = originalWidth;
+            input.scrollTop = currentScrollTop;
+            input.scrollLeft = currentScrollLeft;
+        };
 
-      const input = pdfRef.current;
-      const currentPosition = input.scrollTop;
-      const originalHeight = input.style.height;
-      input.style.height = 'auto';
-  
-      const canvas = await html2canvas(input, {
-        dpi: 300,
-        scale: 3
-      });
-  
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      const pdfWidth = canvas.width;
-      const pdfHeight = canvas.height;
-      const doc = new jsPDF('p', 'px', [pdfWidth, pdfHeight]);
-  
-      doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      doc.save('Dental_Referral.pdf');
-  
-      input.style.height = originalHeight;
-      input.scrollTop = currentPosition;
-      
-      
-    };
     function formatPurpose(purpose) {
         if (!purpose) return ''; // Return empty string if purpose is undefined or null
         if (purpose === 'initial,-,-') {
@@ -91,11 +113,11 @@ const Referral = () => {
         <div className="middlelast" name='middlelast'>
             <div className="input-field" style={{paddingRight: "20px"}}>
                 <label htmlFor="name">Patient's Name </label>
-                <input type="text" name="name" id="name" value={referral.patientName} readOnly/>
+                <input type="text" name="name" id="name" value={referral.patientName}  />
             </div>
             <div className="input-field" style={{paddingRight: "20px"}}>
                 <label htmlFor="age">Age </label>
-                <input type="text" name="age" id="age" value={referral.patientAge} readOnly/>
+                <input type="text" name="age" id="age" value={referral.patientAge}  />
             </div>
             <div className="input-field">
                 <label htmlFor="sex">Sex</label>
@@ -111,7 +133,7 @@ const Referral = () => {
         <div className="middlelast" name='middlelast'>
             <div className="input-field" style={{paddingRight: "20px"}}>
                 <label htmlFor="address">Home Address </label>
-                <input type="text" name="address" id="address" value={referral.patientAddress} readOnly/>
+                <input type="text" name="address" id="address" value={referral.patientAddress}  />
             </div>
             <div className="input-field">
                 <label htmlFor="date">Date </label>
@@ -127,7 +149,7 @@ const Referral = () => {
         name="purpose"
         id="purpose"
         value={formatPurpose(referral.purpose)}
-        readOnly // Make the input field read-only
+          // Make the input field read-only
     />
 </div>
 
@@ -264,8 +286,8 @@ const Referral = () => {
             <p style={{ textDecoration: 'underline'}}>{ referral.dentistLicense }</p>
 
         </div>
-
-        
+        </form>
+                
         <button
         onClick={downloadPDF}
         style={{
@@ -283,7 +305,6 @@ const Referral = () => {
       >
         Save PDF
       </button>
-        </form>
         </div>
     </div>
   )

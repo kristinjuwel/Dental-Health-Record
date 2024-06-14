@@ -12,7 +12,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-const DentalHealthRecord = () => {
+const SampleImage = () => {
   const { dentId, type } = useParams();
   const [examId, setExamId] = useState(null);
   const [dentName, setDentName] = useState('');
@@ -37,7 +37,7 @@ const DentalHealthRecord = () => {
   const [showInitialDate, setShowInitialDate] = useState(false);
   const [showTrainingDate, setShowTrainingDate] = useState(false);
   const [showPromotionDate, setShowPromotionDate] = useState(false);
-
+  const [dentalImagePull, setDentalImagePull] = useState('');
   const [isPopupVisible, setIsPopupVisible] = useState(false);
 
 
@@ -45,6 +45,18 @@ const DentalHealthRecord = () => {
     setButtonsVisible(!buttonsVisible);
   };
 
+  const dentalImages = async () => {
+    try {
+        const response = await fetch('http://localhost:8080/dental/pullpicture/2');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.blob();
+        setDentalImagePull(URL.createObjectURL(data));
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      }
+  };
 
   const fetchServices = async () => {
     try {
@@ -153,6 +165,21 @@ const DentalHealthRecord = () => {
 
     
   };
+
+
+
+  const handleDentalPull = (event) => {
+    const file = dentalImagePull;
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            setDentalImagePull(reader.result);
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -679,7 +706,8 @@ const DentalHealthRecord = () => {
           <p style={{ marginTop: "-5px" }}>MISSING TEETH AND EXISTING RESTORATIONS, DISEASES AND ABONORMALITIES</p>
           <div className='teeth-chart'>
             <div className='teeth-chart-image'>
-              <img src={require('../images/teeth.jpg')} alt="Teeth Chart" style={{ width: "100%", height: "100%" }} />
+              <img src={require('../images/teeth.jpg')} alt="Teeth Chart" style={{ width: "100%", height: "100%", marginTop: "120px" }} />
+              <img src={dentalImagePull} alt="Teeth Chart" style={{ width: "100%", height: "100%", marginTop:"-700px" }} />
               <canvas
                 ref={canvasRef}
                 style={{
@@ -946,7 +974,7 @@ const DentalHealthRecord = () => {
         </form>
       </div>
       <button
-        onClick={downloadPDF}
+        onClick={dentalImages}
         style={{
           position: "absolute",
           top: "3%",
@@ -977,4 +1005,4 @@ const DentalHealthRecord = () => {
   )
 }
 
-export default DentalHealthRecord
+export default SampleImage;

@@ -23,23 +23,23 @@ const Consent = () => {
     const handlePopupYes = async () => {
         setIsPopupVisible(false);
         try {
-          await fetch(`http://localhost:8080/referral/create?examId=${examId}&dentistId=${dentId}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          console.log('Referral created successfully');
-          window.location.href = `/referral/${dentId}/${examId}`;
+            await fetch(`http://localhost:8080/referral/create?examId=${examId}&dentistId=${dentId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log('Referral created successfully');
+            window.location.href = `/referral/${dentId}/${examId}`;
         } catch (error) {
-          console.error('Error creating referral:', error);
+            console.error('Error creating referral:', error);
         }
         console.log('Referral form generation confirmed');
-      };
-      
-      const pdfRef = useRef();
+    };
 
-      const downloadPDF = async () => {
+    const pdfRef = useRef();
+
+    const downloadPDF = async () => {
         const input = pdfRef.current;
         const currentScrollTop = input.scrollTop;
         const currentScrollLeft = input.scrollLeft;
@@ -47,47 +47,47 @@ const Consent = () => {
         const originalWidth = input.style.width;
 
         setHideSubmit(true);
-      
+
         input.style.height = 'auto';
         input.style.width = `${input.scrollWidth}px`;
-      
-        const pageWidth = 1300; // A4 width in pixels at 72 DPI
-        const pageHeight = 1000; // A4 height in pixels at 72 DPI
+
+        const pageWidth = 1400; // A4 width in pixels at 72 DPI
+        const pageHeight = 1100; // A4 height in pixels at 72 DPI
         const contentWidth = input.scrollWidth;
         const contentHeight = input.scrollHeight;
-      
+
         const totalPages = Math.ceil(contentWidth / pageWidth);
-      
+
         const pdf = new jsPDF('portrait', 'px', [pageWidth, pageHeight]);
-      
+
         for (let i = 0; i < totalPages; i++) {
-          if (i > 0) pdf.addPage();
-          input.scrollLeft = i * pageWidth;
-          await new Promise(resolve => setTimeout(resolve, 300)); // Wait for rendering
-      
-          const canvas = await html2canvas(input, {
-            dpi: 300,
-            scale: 3,
-            scrollX: -i * pageWidth,
-            scrollY: 0,
-            width: pageWidth,
-            height: contentHeight,
-            windowWidth: pageWidth,
-            windowHeight: contentHeight
-          });
-      
-          const imgData = canvas.toDataURL('image/jpeg', 1.0);
-          pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, contentHeight);
+            if (i > 0) pdf.addPage();
+            input.scrollLeft = i * pageWidth;
+            await new Promise(resolve => setTimeout(resolve, 300)); // Wait for rendering
+
+            const canvas = await html2canvas(input, {
+                dpi: 300,
+                scale: 3,
+                scrollX: -i * pageWidth,
+                scrollY: 0,
+                width: pageWidth,
+                height: contentHeight,
+                windowWidth: pageWidth,
+                windowHeight: contentHeight
+            });
+
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, contentHeight);
         }
-      
+
         pdf.save('Consent.pdf');
         setHideSubmit(false);
-      
+
         input.style.height = originalHeight;
         input.style.width = originalWidth;
         input.scrollTop = currentScrollTop;
         input.scrollLeft = currentScrollLeft;
-      };  
+    };
 
     useEffect(() => {
         const fetchConsents = async () => {
@@ -207,68 +207,89 @@ const Consent = () => {
                                     <tr key={index}>
                                         <td><input type="text" name="tdate" style={{ padding: "10px" }} value={item.treatDate} readOnly /></td>
                                         <td><input type="text" name="treatment" style={{ width: "100%", padding: "10px" }} value={item.treatment} readOnly /></td>
-                                        <td>
-                                            <input
-                                                type="file"
-                                                name={`psig-${item.consentId}`} // Use a unique name combining 'psig' and consentId
-                                                style={{ width: "100%", border: "1px solid black", borderRadius: "2px", padding: "8px" }}
-                                                onChange={(e) => handleFileChange(item.consentId, 'patSign', e)} // Use item.consentId
-                                            />
+                                        <td style={{border: "1px solid black"}}>
+                                            <label htmlFor={`psig-${item.consentId}`} style={{ width: "100%", display: "block", cursor: "pointer" }}>
+                                                {signatures[`${item.consentId}-patSign`]?.preview ? (
+                                                    <img
+                                                        src={signatures[`${item.consentId}-patSign`].preview}
+                                                        alt="Patient's Signature"
+                                                        style={{ width: '100px', height: 'auto', display: 'block', border: "none", textAlign: "center", justifyContent: "center" }}
+                                                    />
+                                                ) : (
+                                                    <div style={{ width: "100%", border: "1px solid black", borderRadius: "2px", padding: "8px", textAlign: "center" }}>
+                                                        Choose File
+                                                    </div>
+                                                )}
+                                                <input
+                                                    type="file"
+                                                    id={`psig-${item.consentId}`}
+                                                    name={`psig-${item.consentId}`}
+                                                    style={{ display: "none" }}
+                                                    onChange={(e) => handleFileChange(item.consentId, 'patSign', e)}
+                                                />
+                                            </label>
 
-
-                                            {signatures[`${item.consentId}-patSign`]?.preview && ( // Use unique key for accessing signatures
-                                                <img src={signatures[`${item.consentId}-patSign`].preview} alt="Patient's Signature" style={{ width: '100px', height: 'auto' }} />
-                                            )}
                                         </td>
 
-                                        <td>
-                                            <input
-                                                type="file"
-                                                name={`dsig-${item.consentId}`} // Use a unique name combining 'dsig' and consentId
-                                                style={{ width: "100%", border: "1px solid black", borderRadius: "2px", padding: "8px" }}
-                                                onChange={(e) => handleFileChange(item.consentId, 'dentSign', e)} // Use item.consentId
-                                            />
-                                            {signatures[`${item.consentId}-dentSign`]?.preview && ( // Use unique key for accessing signatures
-                                                <img src={signatures[`${item.consentId}-dentSign`].preview} alt="Dentist's Signature" style={{ width: '100px', height: 'auto' }} />
-                                            )}
+                                        <td style={{border: "1px solid black"}}>
+                                            <label htmlFor={`dsig-${item.consentId}`} style={{ width: "100%", display: "block", cursor: "pointer" }}>
+                                                {signatures[`${item.consentId}-dentSign`]?.preview ? (
+                                                    <img
+                                                        src={signatures[`${item.consentId}-dentSign`].preview}
+                                                        alt="Dentist's Signature"
+                                                        style={{ width: '100px', height: 'auto', display: 'block', border: "none", textAlign: "center", justifyContent: "center" , marginRight:"10px"}}
+                                                    />
+                                                ) : (
+                                                    <div style={{ width: "100%", border: "1px solid black", borderRadius: "2px", padding: "8px", textAlign: "center" }}>
+                                                        Choose File
+                                                    </div>
+                                                )}
+                                                <input
+                                                    type="file"
+                                                    id={`dsig-${item.consentId}`}
+                                                    name={`dsig-${item.consentId}`}
+                                                    style={{ display: "none" }}
+                                                    onChange={(e) => handleFileChange(item.consentId, 'dentSign', e)}
+                                                />
+                                            </label>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                    <input type="submit" value="Submit Informed Consent Form" style={{ marginTop: "20px", display: hideSubmit ? 'none' : 'block'  }} />
+                    <input type="submit" value="Submit Informed Consent Form" style={{ marginTop: "20px", display: hideSubmit ? 'none' : 'block' }} />
                 </form>
                 <button
-        onClick={downloadPDF}
-        style={{
-          position: "absolute",
-          top: "3%",
-          right: "2%",
-          backgroundColor: "#2aafce",
-          color: "#fff",
-          border: "none",
-          padding: "10px 20px",
-          borderRadius: "5px",
-          cursor: "pointer",
-          width: "150px"
-        }}
-      >
-        Save PDF
-      </button>
+                    onClick={downloadPDF}
+                    style={{
+                        position: "absolute",
+                        top: "3%",
+                        right: "2%",
+                        backgroundColor: "#2aafce",
+                        color: "#fff",
+                        border: "none",
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                        width: "150px"
+                    }}
+                >
+                    Save PDF
+                </button>
             </div>
             {isPopupVisible && (
-        <div className="popup-overlay">
-          <div className="popup-content">
-            <h2>Generate Referral Form</h2>
-            <div className="popup-buttons">
-              <button onClick={handlePopupYes} style={{marginRight: 10}}>Yes</button>
-              <button onClick={handlePopupClose} style={{backgroundColor: "#800000", color: "#fff"}}>No</button>
-            </div>
-          </div>
+                <div className="popup-overlay">
+                    <div className="popup-content">
+                        <h2>Generate Referral Form</h2>
+                        <div className="popup-buttons">
+                            <button onClick={handlePopupYes} style={{ marginRight: 10 }}>Yes</button>
+                            <button onClick={handlePopupClose} style={{ backgroundColor: "#800000", color: "#fff" }}>No</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
-      )}
-    </div>
     );
 };
 

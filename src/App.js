@@ -9,6 +9,8 @@ import Consent from "./pages/Consent";
 import ReportIndiv from "./pages/ReportIndiv";
 import ReportTable from "./pages/ReportTable";
 import Admin from "./pages/Admin";
+import SampleImage from "./pages/SampleImage";
+
 
 function App() {
   return (
@@ -17,6 +19,7 @@ function App() {
         <Routes>
           <Route index element={<Login/>}></Route>
           <Route path="/dentalhealthrecord/:type/:dentId" element={<DentalHealthRecord/>}></Route>
+          <Route path="/sample/:type/:dentId" element={<SampleImage/>}></Route>
           <Route path="/registration" element={<Registration/>}></Route>
           <Route path="/login" element={<Login/>}></Route>
           <Route path="/verification" element={<Verification/>}></Route>
